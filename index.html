@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<title>MultipOng d'Enti</title>
+<script src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+
+</head>
+
+<body>
+<script>
+
+let game_width = 800;
+let game_height = 450;
+
+let key_up;
+let key_down;
+
+ let config = {
+  type: Phaser.AUTO,
+  width: game_width,
+  height: game_height,
+  scene: {
+ 	  create: create_scene,
+	  update: update_scene
+  }
+
+ }
+ 
+ let game = new Phaser.Game(config);
+
+ let player1;
+ let player1_color = 0xffff00;
+ let player2;
+ let player2_color = 0xffffff;
+ 
+ let player_margin = 32;
+ let player_w = 16;
+ let player_h = 160;
+
+ let ball;
+ let ball_w = 10;
+ let ball_color = 0xff00ff;
+ 
+ let player_speed = 22;
+ let ball_speed= 5;
+
+ let screen_center_h = game_height/2;
+
+ let ball_angle = Math.floor(Math.random()*4)*45;
+ let ball_direction = Math.floor(Math.random()*360);
+
+ let ball_dir_x = 1;
+ let ball_dir_y = 1;
+  
+ let score1 = 0;
+ let score2 = 0;
+ 
+ function create_scene(){
+
+ player1 = this.add.rectangle(player_margin,screen_center_h, player_w, player_h, player1_color);
+ player2 = this.add.rectangle(game_width - player_margin,screen_center_h, player_w, player_h, player2_color);
+ ball= this.add.rectangle(game_width/2, screen_center_h, ball_w, ball_w, ball_color);
+	
+ key_up = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
+ key_down = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
+}
+
+
+function update_scene(){
+
+
+if(key_up.isDown ){
+	player1.y -= player_speed;
+	if (player1.y - player_h/2 <= 0){ player1.y = player_h/2;}
+}
+else if(key_down.isDown){
+
+	player1.y += player_speed;
+	if (player1.y + player_h/2 >= game_height){ player1.y = game_height-player_h/2;}
+}
+	
+	ball.x += ball_dir_x*ball_speed*Math.cos(ball_direction);
+	ball.y += ball_dir_y*ball_speed*Math.sin(ball_direction);
+
+	checkBallCollision();
+}
+
+function checkBallCollision(){
+
+				
+	if (ball.y-ball_w/2 <= 0 ||(ball.y + ball_w/2 )>=game_height )
+	{
+			ball_dir_y = -ball_dir_y;
+	}
+
+	if((ball.x-ball_w/2 <= player1.x+player_w/2) && (ball.y >player1.y-player_h/2 && ball.y < player1.y+ player_h/2 ) )
+	{
+			ball_dir_x = -ball_dir_x;
+	}
+
+	if((ball.x+ball_w/2 >= player2.x-player_w/2) && (ball.y >player2.y-player_h/2 && ball.y < player2.y+ player_h/2 ) )
+	{
+			ball_dir_x = -ball_dir_x;
+	}
+				
+
+}
+
+</script>
+
+
+</body>
+
+</html>
