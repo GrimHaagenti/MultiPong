@@ -5,10 +5,71 @@
 <title>MultipOng d'Enti</title>
 <script src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
 
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+
 </head>
 
 <body>
 <script>
+
+let socket 
+
+
+
+function InitSocket(){
+socket = io();
+
+socket.on ("player_num", (num)=> {
+
+player_num = parseInt(num);
+console.log(num);
+
+if(player_num == 1){
+	player = player1;
+	}
+else if (player_num == 2){
+	player = player2;
+	}
+});
+
+socket.on("coords", (msg) =>{
+	if(player_num == 1){
+		let coords = JSON.parse(msg);
+		player2.y = coords.player2_y;
+	}
+
+	if(player_num == 2){
+		let coords = JSON.parse(msg);
+		player1.y = coords.player1_y;
+		ball.x = coords.ball_x;
+		ball.y = coords.ball_y;
+	}
+
+	
+	if (player_num == 2){
+		
+		socket.on("playerScore", (msg)=>{
+		let scores = JSON.parse(msg);
+		
+		score1 = scores.Score1;
+		score1Text.text = score1;
+
+		score2 = scores.Score2;
+		score2Text.text = score2;
+		});
+
+	}
+	if(!StartGame){
+
+	socket.on("Start", ()=>{
+		StartGame = true;
+	}
+
+	}
+
+});
+}
 
 let game_width = 800;
 let game_height = 450;
@@ -29,10 +90,16 @@ let key_down;
  
  let game = new Phaser.Game(config);
 
+ let player_num = 0;
+
+ let player;
+
  let player1;
- let player1_color = 0xffff00;
+ let player1_color = 0xffffff;
  let player2;
  let player2_color = 0xffffff;
+ 
+ let activePlayerColor = 0xffff00;
  
  let player_margin = 32;
  let player_w = 16;
@@ -42,8 +109,9 @@ let key_down;
  let ball_w = 10;
  let ball_color = 0xff00ff;
  
- let player_speed = 22;
+ let player_speed = 15;
  let ball_speed= 5;
+ let ballBaseSpeed = 5;
 
  let screen_center_h = game_height/2;
 
@@ -55,44 +123,112 @@ let key_down;
   
  let score1 = 0;
  let score2 = 0;
+  
+ let sincroTime =  0;
+ let sincroTimer = 0.1;
+
  
+ let score1Text;
+ let score2Text;
+
+ let StartGame = false;
+
  function create_scene(){
 
  player1 = this.add.rectangle(player_margin,screen_center_h, player_w, player_h, player1_color);
  player2 = this.add.rectangle(game_width - player_margin,screen_center_h, player_w, player_h, player2_color);
  ball= this.add.rectangle(game_width/2, screen_center_h, ball_w, ball_w, ball_color);
-	
+ score1Text = this.add.text( 50, 50 , score1 , {fontSize: "40px", color:"#fff" });	
+ score2Text = this.add.text (game_width-50 , 50,  score2 ,  {fontSize: "40px ", color:"#fff"});
+
  key_up = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
  key_down = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
+
+ InitSocket();
+
+ 
 }
 
 
 function update_scene(){
 
+if(player_num ==0 ){return;}
+if (player.fillColor != activePlayerColor)player.fillColor = activePlayerColor;
 
+if (StartGame){
 if(key_up.isDown ){
-	player1.y -= player_speed;
-	if (player1.y - player_h/2 <= 0){ player1.y = player_h/2;}
+	player.y -= player_speed;
+	if (player.y - player_h/2 <= 0){ player.y = player_h/2;}
 }
 else if(key_down.isDown){
-
-	player1.y += player_speed;
-	if (player1.y + player_h/2 >= game_height){ player1.y = game_height-player_h/2;}
+	player.y += player_speed;
+	if (player.y + player_h/2 >= game_height){ player.y = game_height-player_h/2;}
 }
-	
-	ball.x += ball_dir_x*ball_speed*Math.cos(ball_direction);
-	ball.y += ball_dir_y*ball_speed*Math.sin(ball_direction);
 
-	checkBallCollision();
+	if(player_num ==1){	MoveBall();	checkBallCollision();}
+
+if (sincroTime >= sincroTimer){
+	if(player_num == 1){
+		let	coords = '{"player1_y":'+ Math.floor(player.y)+
+		', "ball_x":'+Math.floor(ball.x)+
+		', "ball_y":'+Math.floor(ball.y)+'}';
+
+		socket.emit('coords', coords);
+	}
+	if(player_num == 2){
+		let coords = '{"player2_y":'+Math.floor(player.y)+'}';
+		socket.emit("coords", coords);
+	}
+	sincroTime =0;
+}
+else{sincroTime += this.game.loop.delta;}
+
+ ball_speed += 0.03;
+ CheckPointScored();
+ }
+}
+function ResetBall(){
+
+	ball_angle = Math.floor(Math.random()*4)*45;
+	ball.x = game_width/2;
+	ball.y = screen_center_h;
+	ball_speed = ballBaseSpeed;
+}
+
+function CheckPointScored(){
+	if(player_num == 1){
+
+	if (ball.x <= 0 - ball_w){ 
+	score2++;  
+	ResetBall();
+	score2Text.text = score2;
+	}
+	else if (ball.x >= game_width + ball_w){ 
+	score1++; 
+	ResetBall();
+	score1Text.text = score1;
+	}
+
+	let score = '{"Score1":'+score1+
+				', "Score2":'+score2+'}';
+	socket.emit("playerScore", score);
+	}
+}
+
+function MoveBall(){
+	ball.x += ball_dir_x*ball_speed*Math.cos(ball_angle);
+	ball.y += ball_dir_y*ball_speed*Math.sin(ball_angle);
+
+	if (ball.y-ball_w/2 <= 0 ||(ball.y + ball_w/2 )>=game_height )
+	{
+			ball_dir_y = -ball_dir_y;
+	}
 }
 
 function checkBallCollision(){
 
 				
-	if (ball.y-ball_w/2 <= 0 ||(ball.y + ball_w/2 )>=game_height )
-	{
-			ball_dir_y = -ball_dir_y;
-	}
+	
 
 	if((ball.x-ball_w/2 <= player1.x+player_w/2) && (ball.y >player1.y-player_h/2 && ball.y < player1.y+ player_h/2 ) )
 	{
