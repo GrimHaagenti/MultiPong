@@ -66,10 +66,10 @@ io.on("connection", (socket) => {
 	if(player1 !=undefined && player2 != undefined){
 	
 	player1.emit("Start", () =>{
-		})
+		});
 
 	player2.emit("Start", () =>{
-		})
+		});
 }
 socket.on("disconnect", ()=>{
 	console.log("Alguien se ha desconectao");
