@@ -33,6 +33,16 @@ else if (player_num == 2){
 	}
 });
 
+socket.on("DbScores", (msg)=>{
+	let dbScores = JSON.parse(msg);
+	createTable(dbScores);
+});
+
+
+socket.on("Start", ()=>{
+		StartGame = true;
+	});
+
 socket.on("coords", (msg) =>{
 	if(player_num == 1){
 		let coords = JSON.parse(msg);
@@ -46,10 +56,9 @@ socket.on("coords", (msg) =>{
 		ball.y = coords.ball_y;
 	}
 
+		});
 	
-	if (player_num == 2){
-		
-		socket.on("playerScore", (msg)=>{
+socket.on("playerScore", (msg)=>{
 		let scores = JSON.parse(msg);
 		
 		score1 = scores.Score1;
@@ -57,18 +66,16 @@ socket.on("coords", (msg) =>{
 
 		score2 = scores.Score2;
 		score2Text.text = score2;
-		});
+			});
+socket.on("Reset", ()=>{
+	Reset();
 
-	}
-	if(!StartGame){
-
-	socket.on("Start", ()=>{
-		StartGame = true;
 	});
-
-	}
+socket.on("StartTimer", (msg)=>{
+	counterText = msg;
 
 });
+
 }
 
 let game_width = 800;
@@ -123,52 +130,81 @@ let key_down;
   
  let score1 = 0;
  let score2 = 0;
-  
- let sincroTime =  0;
- let sincroTimer = 0.1;
+ 
+ let endGameText;
 
+ let winScore = 5;
  
  let score1Text;
  let score2Text;
 
- let StartGame = true;
+ let StartGame = false;
+ let GameOver = false;
+ let StartGameTimer = 3;
+ let StartGameTime = 0;
 
+ let textPositionX = 200;
+ let textPositionY = 100;
+
+ let counterText = "";
+ let isCountingTime = false;
  function create_scene(){
 
  player1 = this.add.rectangle(player_margin,screen_center_h, player_w, player_h, player1_color);
  player2 = this.add.rectangle(game_width - player_margin,screen_center_h, player_w, player_h, player2_color);
  ball= this.add.rectangle(game_width/2, screen_center_h, ball_w, ball_w, ball_color);
- score1Text = this.add.text( 50, 50 , score1 , {fontSize: "40px", color:"#fff" });	
- score2Text = this.add.text (game_width-50 , 50,  score2 ,  {fontSize: "40px ", color:"#fff"});
+ score1Text = this.add.text( textPositionX, textPositionY , score1 , {fontSize: "60px", color:"#fff" });	
+ score2Text = this.add.text (game_width-textPositionX, textPositionY,  score2 ,  {fontSize: "60px ", color:"#fff"});
+ endGameText = this.add.text (game_width/2 , game_height/2,  "" ,  {fontSize: "80px ", color:"#fff"});
+
 
  key_up = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
  key_down = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
 
  InitSocket();
 
- 
+ isCountingTime = true;
 }
 
 
 function update_scene(){
 
-if(player_num ==0 ){return;}
-if (player.fillColor != activePlayerColor)player.fillColor = activePlayerColor;
+	if(player_num ==0 ){return;}
+	if (player.fillColor != activePlayerColor)player.fillColor = activePlayerColor;
 
-if (StartGame){
-if(key_up.isDown ){
+	if (StartGame){
+	if(player_num ==1 ){
+		if(isCountingTime){
+		if (StartGameTime < StartGameTimer){
+		StartGameTime += this.game.loop.delta/1000;
+		counterText = Math.ceil(StartGameTimer-StartGameTime);
+		}else{
+		counterText = "";
+ 		isCountingTime = false;
+		}
+		endGameText.text = counterText;
+		socket.emit("StartTimer", counterText); 
+		return;
+		}
+	}
+		
+	endGameText.text = counterText;
+	
+	
+
+	if(!GameOver){
+	if(key_up.isDown ){
 	player.y -= player_speed;
 	if (player.y - player_h/2 <= 0){ player.y = player_h/2;}
-}
-else if(key_down.isDown){
+	}
+	else if(key_down.isDown){
 	player.y += player_speed;
 	if (player.y + player_h/2 >= game_height){ player.y = game_height-player_h/2;}
+	}	
 }
-
-	if(player_num ==1){	MoveBall();	checkBallCollision();}
-
-if (sincroTime >= sincroTimer){
-	if(player_num == 1){
+	if(player_num ==1){	
+		if(!GameOver){MoveBall();}	
+		checkBallCollision();
 		let	coords = '{"player1_y":'+ Math.floor(player.y)+
 		', "ball_x":'+Math.floor(ball.x)+
 		', "ball_y":'+Math.floor(ball.y)+'}';
@@ -176,17 +212,36 @@ if (sincroTime >= sincroTimer){
 		socket.emit('coords', coords);
 	}
 	if(player_num == 2){
+
 		let coords = '{"player2_y":'+Math.floor(player.y)+'}';
 		socket.emit("coords", coords);
 	}
-	sincroTime =0;
-}
-else{sincroTime += this.game.loop.delta;}
 
- ball_speed += 0.03;
- CheckPointScored();
- }
+	if(player_num == 1){ball_speed += 0.03};
+	 CheckPointScored();
+	}
 }
+function Reset()
+{
+console.log("Reset");
+StartGameTime = 0;
+ResetBall();
+
+player1.x = player_margin ;
+player1.y = screen_center_h;
+
+
+player2.x = game_width - player_margin;
+player2.y = screen_center_h;
+
+score1 = 0;
+score1Text.text = score1;
+score2 = 0;
+score2Text.text = score2;
+GameOver = false;
+isCountingTime = true;
+}
+
 function ResetBall(){
 
 	ball_angle = Math.floor(Math.random()*4)*45;
@@ -198,22 +253,49 @@ function ResetBall(){
 function CheckPointScored(){
 	if(player_num == 1){
 
-	if (ball.x <= 0 - ball_w){ 
-	score2++;  
-	ResetBall();
-	score2Text.text = score2;
-	}
-	else if (ball.x >= game_width + ball_w){ 
-	score1++; 
-	ResetBall();
-	score1Text.text = score1;
-	}
-
+		if (ball.x <= 0 - ball_w){ 
+			score2++;  
+			ResetBall();
+			score2Text.text = score2;
+			}
+		else if (ball.x >= game_width + ball_w){ 
+		score1++; 
+		ResetBall();
+		score1Text.text = score1;
+		}
 	let score = '{"Score1":'+score1+
 				', "Score2":'+score2+'}';
 	socket.emit("playerScore", score);
 	}
-}
+	if(!GameOver){
+
+	if(score1 == 5){
+		if(player_num ==1){
+		 	counterText = "WIN";
+			}	
+		if(player_num == 2){
+			counterText = "LOSE";
+			}
+		if(player_num == 1){
+		socket.emit("MatchEnded",()=>{});}
+		GameOver = true;
+		console.log("AAA");
+	}
+	else if(score2 == 5){
+		if(player_num ==1){
+		 	counterText = "LOSE";
+			}	
+		if(player_num == 2){
+			counterText = "WIN";
+			}
+			
+		if(player_num == 1){
+		socket.emit("MatchEnded",()=>{});} 
+		GameOver = true;
+		console.log("aaa");
+	}
+	}
+ }
 
 function MoveBall(){
 	ball.x += ball_dir_x*ball_speed*Math.cos(ball_angle);
@@ -225,10 +307,7 @@ function MoveBall(){
 	}
 }
 
-function checkBallCollision(){
-
-				
-	
+function checkBallCollision(){	
 
 	if((ball.x-ball_w/2 <= player1.x+player_w/2) && (ball.y >player1.y-player_h/2 && ball.y < player1.y+ player_h/2 ) )
 	{
@@ -243,7 +322,44 @@ function checkBallCollision(){
 
 }
 
+
+function createTable(scores)
+{
+
+let scoresList ="";
+scores.forEach( (it)=>{
+
+let row = "<tr>";
+row += "<td> Player 1: " +it.score1+"    </td>";
+
+row += "<td> Player 2: " +it.score2+"    </td>";
+
+let dateArray = it.dateTime.split("T");
+let hourArray = dateArray[1].split(":");
+dateArray = dateArray[0].split("-");
+
+row += "<td> Date: " +dateArray[2]+"-"+dateArray[1]+"-"+dateArray[0] +"  "+ hourArray[0]+ ":"+ hourArray[1]+  "</td>";
+row += "</tr>";
+scoresList += row;
+});
+
+document.getElementById("scoreTable").innerHTML = scoresList;
+
+}
+
+
+
+
 </script>
+<main>
+<h2>Latest Scores</h2>
+<table id="scoreTable">
+
+
+
+</table>
+</main>
+
 
 
 </body>
