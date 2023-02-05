@@ -202,7 +202,7 @@ function update_scene(){
 	endGameText.text = counterText;
 	
 	
-
+if(GameOver && ball_speed > 5){GameOver = true;}
 	if(!GameOver){
 	if(key_up.isDown ){
 	player.y -= player_speed;
@@ -228,7 +228,8 @@ function update_scene(){
 		socket.emit("coords", coords);
 	}
 
-	if(player_num == 1){ball_speed += 0.03};
+	if(player_num == 1){ball_speed += 0.03;
+	if(ball_speed > 10){ball_speed = 10;}}
 	 CheckPointScored();
 	}
 }
@@ -342,9 +343,9 @@ let scoresList ="";
 let counter= 0;
 let maxScoresShown = 5;
 
-for(let i = scores.length -1;i>0;i--){
+for(let i = scores.length -1;i>-1;i--){
 
-	if(counter<5){
+	if(counter<maxScoresShown){
 		counter++;
 		let row = "<tr>";
 		row += "<td> Player 1: " +scores[i].Score1+"    </td>";
