@@ -65,7 +65,7 @@ io.on("connection", (socket) => {
 
 	player1.on("MatchEnded",()=> {
 		Timer();
-			
+		InsertLastScore(scores)
 		console.log(scores);
 
 
@@ -111,8 +111,8 @@ io.on("connection", (socket) => {
 function InsertLastScore(scores) 
 {
 
-
-
+	lastScore =	JSON.parse(scores)
+	db.collection("scores").insertOne({"Score1": lastScore.Score1,"Score2": lastScore.Score2, "dateTime": new Date()}); 
 
 }
 
@@ -123,7 +123,7 @@ function SendLatestScores(playerSocket){
 	scores.toArray( (err, data)=>{
 	
 		let scores_string = JSON.stringify(data); 
-	
+		
 		playerSocket.emit("DbScores",scores_string);
 
 	});
@@ -143,6 +143,8 @@ function SendReset()
 
 	player1.emit("Reset");
 	player2.emit("Reset");
+	SendLatestScores(player1);
+	SendLatestScores(player2);
 	clearTimeout(timeout);
 	}
 }

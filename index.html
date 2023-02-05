@@ -327,21 +327,29 @@ function createTable(scores)
 {
 
 let scoresList ="";
-scores.forEach( (it)=>{
 
+let counter= 0;
+let maxScoresShown = 5;
+
+for(let i = scores.length -1;i>0;i--){
+
+if(counter<5){
+counter++;
 let row = "<tr>";
-row += "<td> Player 1: " +it.score1+"    </td>";
+row += "<td> Player 1: " +scores[i].Score1+"    </td>";
 
-row += "<td> Player 2: " +it.score2+"    </td>";
+row += "<td> Player 2: " +scores[i].Score2+"    </td>";
 
-let dateArray = it.dateTime.split("T");
+let dateArray = scores[i].dateTime.split("T");
 let hourArray = dateArray[1].split(":");
 dateArray = dateArray[0].split("-");
 
 row += "<td> Date: " +dateArray[2]+"-"+dateArray[1]+"-"+dateArray[0] +"  "+ hourArray[0]+ ":"+ hourArray[1]+  "</td>";
 row += "</tr>";
 scoresList += row;
-});
+}
+
+};
 
 document.getElementById("scoreTable").innerHTML = scoresList;
 
