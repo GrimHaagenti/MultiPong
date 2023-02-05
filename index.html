@@ -13,7 +13,7 @@
 <body>
 <script>
 
-let socket 
+let socket;
 
 
 
@@ -22,15 +22,16 @@ socket = io();
 
 socket.on ("player_num", (num)=> {
 
-player_num = parseInt(num);
-console.log(num);
+	player_num = parseInt(num);
+	console.log(num);
 
-if(player_num == 1){
-	player = player1;
-	}
-else if (player_num == 2){
-	player = player2;
-	}
+	if(player_num == 1)
+		{
+		player = player1;
+		}
+	else if (player_num == 2){
+		player = player2;
+		}
 });
 
 socket.on("DbScores", (msg)=>{
@@ -76,6 +77,13 @@ socket.on("StartTimer", (msg)=>{
 
 });
 
+
+socket.on("HandleDisconnect", ()=>{
+	StartGame = false;
+	Reset();
+	
+
+});
 }
 
 let game_width = 800;
@@ -171,6 +179,9 @@ function update_scene(){
 
 	if(player_num ==0 ){return;}
 	if (player.fillColor != activePlayerColor)player.fillColor = activePlayerColor;
+
+	if(player1!=player){player1.fillColor = player1_color;}
+	if(player2!=player){player2.fillColor = player2_color;}
 
 	if (StartGame){
 	if(player_num ==1 ){
@@ -333,22 +344,21 @@ let maxScoresShown = 5;
 
 for(let i = scores.length -1;i>0;i--){
 
-if(counter<5){
-counter++;
-let row = "<tr>";
-row += "<td> Player 1: " +scores[i].Score1+"    </td>";
+	if(counter<5){
+		counter++;
+		let row = "<tr>";
+		row += "<td> Player 1: " +scores[i].Score1+"    </td>";
 
-row += "<td> Player 2: " +scores[i].Score2+"    </td>";
+		row += "<td> Player 2: " +scores[i].Score2+"    </td>";
 
-let dateArray = scores[i].dateTime.split("T");
-let hourArray = dateArray[1].split(":");
-dateArray = dateArray[0].split("-");
+		let dateArray = scores[i].dateTime.split("T");
+		let hourArray = dateArray[1].split(":");
+		dateArray = dateArray[0].split("-");
 
-row += "<td> Date: " +dateArray[2]+"-"+dateArray[1]+"-"+dateArray[0] +"  "+ hourArray[0]+ ":"+ hourArray[1]+  "</td>";
-row += "</tr>";
-scoresList += row;
-}
-
+	row += "<td> Date: " +dateArray[2]+"-"+dateArray[1]+"-"+dateArray[0] +"  "+ hourArray[0]+ ":"+ hourArray[1]+  "</td>";
+	row += "</tr>";
+	scoresList += row;
+		}
 };
 
 document.getElementById("scoreTable").innerHTML = scoresList;

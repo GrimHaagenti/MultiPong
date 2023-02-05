@@ -73,6 +73,7 @@ io.on("connection", (socket) => {
 		player1.on("disconnect", ()=>{
 
 		player1 = undefined;
+
 		});
 
 	}
@@ -90,6 +91,9 @@ io.on("connection", (socket) => {
 
 		player2.on("disconnect", ()=> {
 		player2 = undefined;
+		if(player1 != undefined){
+		player1.emit("HandleDisconnect");
+		}
 		});
 	
 	player1.emit("Start");
@@ -102,9 +106,6 @@ io.on("connection", (socket) => {
 		console.log("sala llena");
 	}
 
-	socket.on("disconnect", ()=>{
-	console.log("Alguien se ha desconectao");
-		});
 
 });
 
